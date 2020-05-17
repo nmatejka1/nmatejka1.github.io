@@ -1,0 +1,267 @@
+---
+title: "Predicting Popularity on Youtube"
+author: "Madeleine Ho and Nick Matejka"
+date: "5/13/2020"
+output: html_document
+---
+
+# Introduction
+
+YouTube is an American online video-sharing platform that allows its users to upload, view, share, comment, and create playlists from videos. Users can subscribe to one another to continue seeing uploads from the user they subscribed to. The content ranges from video clips, TV shows, music videos, documentaries, audio recordings, movie trailers, vlogging, educational videos, and other original content. Many people began to see the value in being a YouTube creator after selected creators began to earn advertising revenue from Google AdSense, which targets ads according to the video content. With its heightened popularity over the years, the platform also has become very saturated with users and creators. There were more than 500 hours of content being uploaded to YouTube every minute as of 2019. As of 2018, YouTube was ranked as the second most popular site in the world behind Google. As a result, the YouTube platform rakes in billions of annual revenues. 
+
+We chose 2017 trending videos on YouTube in the United States to analyze what factors can make a video successful and land on the trending page. The number of tags used, title length, and time posted were the variables that we chose to determine the effects on video's success. "Success", for this project, is determined by the number of views a video recieves. Other factors that were provided by the data were likes, comments, and how long the video was on the trending page. We did not choose these variables, because if a video has more views, it will most likely have more engagement and have a larger chance of being on the trending page than those with less views. Our goal is to figure out what factors YouTube creators have the power to change and gaurantee more views on their videos.
+
+# Preparing Data and Libraries
+
+We chose R as our primary tool to gather, analyze, and graph our data. Some important libraries to include in this project would be **tidyverse**, **stringr**, and **broom**.
+
+```{r setup, include=FALSE}
+  library(tidyverse)
+  library(stringr)
+  library(broom)
+```
+
+Here we load the data into our variable called "data". We only selected the factors that we want to test, which includes the videos' titles, tags, number of views, and publish time. We group by title because one video appears multiple times in the data as there is a new entry for every time a video is on the trending page. Grouping by the maximum number of views a video recieved shows us the end result of viewer success that we are looking for. We do not care about the content of the tags or title, so we obtained the number of tags and characters in titles as a part of our data preparation. In additon, we parsed the time variable so that we could see clearly what hour the video was published.
+
+```{r}
+data <- read.csv("file:///C:/Users/nmate/Documents/USVideos.csv") %>%
+  select(title, tags, views, publish_time) %>%
+  group_by(title) %>%
+  #multiple instances so we use the one with highest view count 
+  filter(views == max(views)) %>% 
+  #count number of | to find number of tags
+  mutate(num_of_tags = ifelse(tags == "[none]", 0, str_count(tags, "\\|") + 1)) %>%
+  mutate(title_length = str_count(title)) %>%
+  mutate(hour = strtoi(substr(publish_time, 12, 13), 10L))
+
+data
+```
+
+As shown in our DataFrame above:
+
+* title : a string of the title of each video
+* tags: a string with all of the tags for each video and each tag is separated with a "|"
+* views: the number of views the video recieved
+* publish_time: date and time the video was published
+* num_of_tags: the number of tags used for the video (0-69)
+* hour: the hour of the day the video was posted (0-23)
+* title_length: the length of the title string including the spaces
+
+# Graphing
+
+## The Power of Tags
+
+The first factor we decided to analyze was the power of tags on a video's success. We wanted to see if there was a relationship between the number of tags and views a video recieved, so that creators can know if tagging more or less can increase their viewership.
+
+### Tags on less than 1 million views
+
+The first set of videos we tested to see the pattern of tags with viewership were videos that had under 1 million views. Tagging could affect channels of different sizes in various ways, so we decided to first tackle smaller channels. This information could be useful for YouTubers who are just starting out, or have been struggling to make it on the platform and get their videos viral and trending. By filtering the videos with views less than 1 million, grouping by the number of tags, and filtering out data points that have less than 5 videos under each tag amount, we ran our regression.
+```{r}
+tag_analysis_under_1m <- data %>%
+  select(num_of_tags, views) %>%
+  filter(views < 1000000) %>%
+  group_by(num_of_tags) %>%
+  summarize(videos_with_count = n(), mean_views = mean(views)) %>%
+  filter(videos_with_count > 5)
+
+tag_analysis_under_1m %>%
+  ggplot(mapping = aes(x=mean_views, y=num_of_tags)) + geom_point() + geom_smooth(method = lm) +
+  labs(title="Number of Tags vs. Average Views (Under 1M)",
+       x = "Average Views",
+       y = "Number of Tags")
+```
+
+By looking at the graph that compares the number of tags with the average amount of views for videos with less than 1 million views, we can see that using more tags is useful for this group of creators. For a smaller channel that has yet to hit 1 million views on a video, tags can be used generously to create some traction. Tags will allow people who are not subscribed to the creator to find their video through the relevant topics in the tags. Tags can drive viewers to a small video, but what if you already have a substantial audience?
+
+### Tags on 1 to 3 million views
+
+The next group we decided to target were videos that had 1 to 3 million views on YouTube. Creators with these videos could have possibly just gotten their first viral video, or they may not be as big as the pop stars and vloggers getting over 10 million views. This is a demographic of creators that have already created a small presence on YouTube with a couple million viewers. Should they tag often so that their videos will get even more exposure?
+```{r}
+tag_analysis_1m_3m <- data %>%
+  select(num_of_tags, views) %>%
+  filter(views > 1000000 & views < 3000000) %>%
+  group_by(num_of_tags) %>%
+  summarize(videos_with_count = n(), mean_views = mean(views)) %>%
+  filter(videos_with_count > 5)
+
+tag_analysis_1m_3m %>%
+  ggplot(mapping = aes(x=mean_views, y=num_of_tags)) + geom_point() + geom_smooth(method = lm) +
+  labs(title="Number of Tags vs. Average Views (1M-3M)",
+       x = "Average Views",
+       y = "Number of Tags")
+```
+
+As we can see, there is no point to tagging a lot if you are over a million views. There is a slight downward slope to the linear regression, but the slope is nearly 0. This shows that when a creator has videos hitting a couple million views, it does not matter if they decide to tag their video. The more tags there are on a video like this, the same amount of exposure would happen even if they had not tagged the video much. 
+
+### Tags on greater than 3 million views
+
+From the trends we are finding, the more videos move up in views, the less tagging matters. We decided to test this on our last group of very prominent members in the YouTube community that are getting over 3 million hits on their videos. Tagging most likely will not impact viewership in this case because these videos may be by already popular content creators or are just viral videos that have spread through other channels and gained exposure aside from tags.
+```{r}
+tag_analysis_above_3m <- data %>%
+  select(num_of_tags, views) %>%
+  filter(views > 3000000) %>%
+  group_by(num_of_tags) %>%
+  summarize(videos_with_count = n(), mean_views = mean(views)) %>%
+  filter(videos_with_count > 5)
+
+tag_analysis_above_3m %>%
+  ggplot(mapping = aes(x=mean_views, y=num_of_tags)) + geom_point() + geom_smooth(method = lm) +
+  labs(title="Number of Tags vs. Average Views (Above 3M)",
+       x = "Average Views",
+       y = "Number of Tags")
+```
+
+As we can see, there is no relationship between tagging videos and viewership. The slope of the regression line appears to have a negative slope. This tells us that no matter how much or little someone tags their videos, there is no impact on the number of views they will recieve. If anything, tagging can be detrimental to larger videos as demonstrated by the downward slope. However, if we look at the points, the data is very scattered, so tagging could be argued to not matter in the above 3 million cases. 
+
+### Tagging for the entire range of views
+
+Lastly, we decided to see the affects of tagging on the entire view range for the videos. The filter this time is changed to 10 because in the smaller samples, more datapoints were significant, but now narrowing it down more would help us see an overall trend. Considering tagging is helpful for smaller YouTube videos and not helpful for more popular videos, the graph should probably be close to a flat line.
+```{r}
+tag_analysis_above_3m <- data %>%
+  select(num_of_tags, views) %>%
+  group_by(num_of_tags) %>%
+  summarize(videos_with_count = n(), mean_views = mean(views)) %>%
+  filter(videos_with_count > 10)
+
+tag_analysis_above_3m %>%
+  ggplot(mapping = aes(x=mean_views, y=num_of_tags)) + geom_point() + geom_smooth(method = lm) +
+  labs(title="Number of Tags vs. Average Views",
+       x = "Average Views",
+       y = "Number of Tags")
+```
+
+The graph shows that tagging is not useful for the entire range of videos. There is a negative slope as tagging more can lead to less viewers. This is not how the data should be interpreted, however. Because small YouTubers are trying to grow, tagging a lot may look like it has a relationship with less views. Tagging more may not mean you will get less views, but tagging more may be a habit of smaller YouTubers. As a result, there are many datapoints that have few views and a lot of tags.
+
+## The Impact of Title Length
+
+The second factor that we figured could have a relationship with views is title length. Would the number of characters in a title directly impact the number of views a video recieved? There is only one way to find out!
+
+### Title length on less than 1 million views 
+
+We want to see the same relationship between viewership that we looked at with tags with title length. First, we looked at videos with less than 1 million views, for the smaller channels. 
+```{r}
+title_analysis_under_1m <- data %>%
+  select(title_length, views) %>%
+  filter(views < 1000000) %>%
+  group_by(title_length) %>%
+  summarize(videos_with_count = n(), mean_views = mean(views))
+
+title_analysis_under_1m %>%
+  ggplot(mapping = aes(x=mean_views, y=title_length)) + geom_point() + geom_smooth(method = lm) +
+  labs(title="Title Length vs. Average Views (Under 1M)",
+       x = "Average Views",
+       y = "Title Length")
+```
+
+The linear regression lines shows a downward trend from title length to average views for smaller channel sizes. This would make sense, as titles are used as a way to get someones attention to click the video. If the title is too long, the viewer would not read it in it's entirity while scrolling by and likely would not click on it.
+
+### Title length on 1 to 3 million views 
+
+Next, we tested the effect of title length on the middle range of viewership in our sample size. This middle range being between 1 and 3 million views.
+```{r}
+title_analysis_between_1m_3m <- data %>%
+  select(title_length, views) %>%
+  filter(views > 1000000 & views < 3000000) %>%
+  group_by(title_length) %>%
+  summarize(videos_with_count = n(), mean_views = mean(views))
+
+title_analysis_between_1m_3m  %>%
+  ggplot(mapping = aes(x=mean_views, y=title_length)) + geom_point() + geom_smooth(method = lm) +
+  labs(title="Title Length vs. Average Views (1M-3M)",
+       x = "Average Views",
+       y = "Title Length")
+```
+
+This regression line shows the same thing as the regression line for less than 1m viewership. It shows the same relation that shorter titles increase the viewership. This follows a similar line of thinking to that of those less than 1m viewership, as the longer titles would lead to less people clicking on the video.
+
+
+### Title length on 3 million and up views
+
+Finally, we view the effect on the larger viewership videos, with 3 million and up views. 
+```{r}
+title_analysis_above_3m  <- data %>%
+  select(title_length, views) %>%
+  filter(views > 3000000) %>%
+  group_by(title_length) %>%
+  summarize(videos_with_count = n(), mean_views = mean(views))
+
+title_analysis_above_3m %>%
+  ggplot(mapping = aes(x=mean_views, y=title_length)) + geom_point() + geom_smooth(method = lm) +
+  labs(title="Title Length vs. Average Views (Above 3M)",
+       x = "Average Views",
+       y = "Title Length")
+```
+This regression line shows the same effect as the last two regression lines. It shows that having a short title increases views, but the trend has a smaller downward slope because the increase in views is relative. For those with less views, the increase in views that a short title would give the video, it effects their view count moreso than it does on one with a lot of views. 
+
+### Title length on full sample size
+
+Throughout the three different sample sizes, we saw the same trend with title length and average viewership. The shorter the title, the more views you would presumably get. The full sample size should show this as well. In the smaller sample sizes, we did not filter out the data as each point is significant in a small dataset. However, in the entire sample, we filter out title lengths with less than 10 videos, as these outliers can effect the overall data in a negative way.
+```{r}
+title_analysis <- data %>%
+  select(title_length, views) %>%
+  group_by(title_length) %>%
+  summarize(videos_with_count = n(), mean_views = mean(views)) %>%
+  filter(videos_with_count > 10)
+
+title_analysis %>%
+  ggplot(mapping = aes(x=mean_views, y=title_length)) + geom_point() + geom_smooth(method = lm) +
+  labs(title="Title Length vs. Average Views",
+       x = "Average Views",
+       y = "Title Length")
+```
+
+This shows the predicted trend holds true throughout the entire sample size. The smaller title creates a greater viewership for the video. This is due to the reasons mentioned before, as having a smaller title would be easier for a user to read, and thus could make them want to watch the video. 
+
+## Prime Video Posting Time
+
+### Best time blocks
+
+The last factor that we thought could drive views were the time in which the video was posted. We decided to break the hours up into groups of four: 0-3, 3-7, 7-11, 11-15, 15-19, 19-23. The hour blocks did not include the starting hour and included the ending hour with an exception of the first hour block, which includes both hour 0 and hour 3. These times were graphed against average views that videos recieved for the respective publishing times. 
+
+``` {r}
+time_analysis <- data %>%
+  mutate(groups_of_four = cut(hour, breaks = c(0, 3, 7, 11, 15, 19, 23), include.lowest = TRUE)) %>%
+  group_by(groups_of_four) %>%
+  summarize(mean_views = mean(views)) %>%
+  mutate(mean_views = as.integer(mean_views))
+
+time_analysis %>%
+  ggplot(mapping = aes(x=mean_views, y=groups_of_four, color=groups_of_four)) + geom_text(aes(label = mean_views)) + geom_point() +
+  coord_cartesian(xlim=c(1400000, 3100000)) + labs(title="Time versus average views",
+       x = "Average views",
+       y = "Hour posted",
+       color = "Time blocks")
+```
+
+We can see that some publishing hours perform much better than others. For exmaple, videos posted between 3 and 11 perform much better than videos posted from 0 to 3 and 15 to 23 differing by around 2 million views on average. Videos posted in the 11 to 15 timeslot have a mediocre performance in the 2 million range. Overall, the best performing 3 hour range to post would be from 3 to 7, which reaches upwards of 3 million views on average. On the other hand, the worst performing timeslot is 15-19 where views are right below 1.5 million views on average. According to the data from the US trending videos in 2017, the best time to post would have been between 3 am and 7 am.
+
+### Best specific hours
+
+In addition to time blocks, we wanted to see which specific hours performed the best. Instead of hour increments, what hour in the day performs the best? 
+```{r}
+time_mean_views <- data %>%
+  group_by(hour) %>%
+  select(hour, views) %>%
+  summarize(mean_views = mean(views)) %>%
+  mutate(mean_views = as.integer(mean_views))
+
+time_kmeans <- time_mean_views %>%
+  kmeans(centers = 4)
+
+time_clusters <- time_kmeans %>%
+  augment(data=time_mean_views)
+
+time_clusters %>%
+  ggplot(mapping = aes(x=mean_views, y=hour, color=.cluster)) + geom_text(aes(label = hour)) + labs(title="Time versus average views",
+       x = "Average Views",
+       y = "Hour Posted",
+       color = "Hour Ranking")
+```
+
+The results of this confirm what we found while looking at the 4 hour time spans that from 4-7 and from 8-11 are the best time frames to post during. When looking more closely at the data in this graph, we can see that the 4-7 time frame is in fact good, as 4, 5, and 7 are all in the top two clusters. However, it shows us that 6 is in the worst cluster and 4 is in the best cluster. Similarly for 8-11, while 8 and 10 are in the upper half, 9 is significantly better than them, and 11 is worse. For both of the best timespans, there are solid times to post in 5, 7, 8, and 10, and bad times to post in 6 and 11. There are also the ideal times to post, which are 4 and 9. These clusters show what times are the best to post at clearly, and since posting on a rigid schedule is not always easy, time ranges that have predicted results are very useful. 
+
+# Conclusion
+
+Based off of our results, YouTube is just as a competitive platform as people claim it to be. With videos constantly going viral with 1 million views seeming small in comparison to the other view counts, it can be difficult to make it on such a platform. That is why we wanted to make this project to put the power back into the creators hands and give them ways to change factors that will increase their probability of having successful videos. 
+
+Some important factors that we tested were the number of tags on a video, the title length, and the time in which a video was published. Tweaking these factors have been rumored to increase viewership and we debunked that in this project. We can see that tagging is not very effective for YouTube creators that get millions of hits, but it is effective for smaller creators. In terms of title-length, it is more useful to have a short title that is to the point as longer titles seemed to get less views. Lastly, in 2017, the best time to post was between 3 am and 7 am, which led to upwards of 3 million views on average. 
