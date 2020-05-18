@@ -7,13 +7,13 @@ output: html_document
 
 # Introduction
 
-YouTube is an American online video-sharing platform that allows its users to upload, view, share, comment, and create playlists from videos. Users can subscribe to one another to continue seeing uploads from the user they subscribed to. The content ranges from video clips, TV shows, music videos, documentaries, audio recordings, movie trailers, vlogging, educational videos, and other original content. Many people began to see the value in being a YouTube creator after selected creators began to earn advertising revenue from Google AdSense, which targets ads according to the video content. With its heightened popularity over the years, the platform also has become very saturated with users and creators. There were more than 500 hours of content being uploaded to YouTube every minute as of 2019. As of 2018, YouTube was ranked as the second most popular site in the world behind Google. As a result, the YouTube platform rakes in billions of annual revenues. 
+[YouTube](https://www.youtube.com/) is an American online video-sharing platform that allows its users to upload, view, share, comment, and create playlists from videos. Users can subscribe to one another to continue seeing uploads from the user they subscribed to. The content ranges from video clips, TV shows, music videos, documentaries, audio recordings, movie trailers, vlogging, educational videos, and other original content. Many people began to see the value in being a [YouTube](https://en.wikipedia.org/wiki/YouTube) creator after selected creators began to earn advertising revenue from Google AdSense, which targets ads according to the video content. With its heightened popularity over the years, the platform also has become very saturated with users and creators. There were more than 500 hours of content being uploaded to YouTube every minute as of 2019. As of 2018, YouTube was ranked as the second most popular site in the world behind Google. As a result, the YouTube platform rakes in billions of annual revenues. 
 
-We chose 2017 trending videos on YouTube in the United States to analyze what factors can make a video successful and land on the trending page. The number of tags used, title length, and time posted were the variables that we chose to determine the effects on video's success. "Success", for this project, is determined by the number of views a video recieves. Other factors that were provided by the data were likes, comments, and how long the video was on the trending page. We did not choose these variables, because if a video has more views, it will most likely have more engagement and have a larger chance of being on the trending page than those with less views. Our goal is to figure out what factors YouTube creators have the power to change and gaurantee more views on their videos.
+We chose a [dataset](https://www.kaggle.com/datasnaek/youtube-new) of 2017 trending videos on YouTube in the United States to analyze what factors can make a video successful and land on the trending page. The number of tags used, title length, and time posted were the variables that we chose to determine the effects on video's success. "Success", for this project, is determined by the number of views a video recieves. Other factors that were provided by the data were likes, comments, and how long the video was on the trending page. We did not choose these variables, because if a video has more views, it will most likely have more engagement and have a larger chance of being on the trending page than those with less views. Our goal is to figure out what factors YouTube creators have the power to change and gaurantee more views on their videos.
 
 # Preparing Data and Libraries
 
-We chose R as our primary tool to gather, analyze, and graph our data. Some important libraries to include in this project would be **tidyverse**, **stringr**, and **broom**.
+We chose R as our primary tool to gather, analyze, and graph our data. Some important libraries to include in this project would be [tidyverse](https://www.tidyverse.org/), [stringr](https://stringr.tidyverse.org/), and [broom](https://cran.r-project.org/web/packages/broom/index.html).
 
 ```{r setup, include=FALSE}
   library(tidyverse)
@@ -21,7 +21,7 @@ We chose R as our primary tool to gather, analyze, and graph our data. Some impo
   library(broom)
 ```
 
-Here we load the data into our variable called "data". We only selected the factors that we want to test, which includes the videos' titles, tags, number of views, and publish time. We group by title because one video appears multiple times in the data as there is a new entry for every time a video is on the trending page. Grouping by the maximum number of views a video recieved shows us the end result of viewer success that we are looking for. We do not care about the content of the tags or title, so we obtained the number of tags and characters in titles as a part of our data preparation. In additon, we parsed the time variable so that we could see clearly what hour the video was published.
+Here we load the data into our variable called "data". This variable "data" is an r [dataset](https://sejdemyr.github.io/r-tutorials/basics/dataset-basics/). We only selected the factors that we want to test, which includes the videos' titles, tags, number of views, and publish time. We group by title because one video appears multiple times in the data as there is a new entry for every time a video is on the trending page. Grouping by the maximum number of views a video recieved shows us the end result of viewer success that we are looking for. We do not care about the content of the tags or title, so we obtained the number of tags and characters in titles as a part of our data preparation. In additon, we parsed the time variable so that we could see clearly what hour the video was published.
 
 ```{r}
 data <- read.csv("file:///C:/Users/nmate/Documents/USVideos.csv") %>%
@@ -44,14 +44,14 @@ As shown in our DataFrame above:
 * views: the number of views the video recieved
 * publish_time: date and time the video was published
 * num_of_tags: the number of tags used for the video (0-69)
-* hour: the hour of the day the video was posted (0-23)
+* [hour](https://military.onlineclock.net/chart/): the hour of the day the video was posted (0-23)
 * title_length: the length of the title string including the spaces
 
 # Graphing
 
 ## The Power of Tags
 
-The first factor we decided to analyze was the power of tags on a video's success. We wanted to see if there was a relationship between the number of tags and views a video recieved, so that creators can know if tagging more or less can increase their viewership.
+The first factor we decided to analyze was the power of tags on a video's success. We wanted to see if there was a relationship between the number of tags and views a video recieved, so that creators can know if tagging more or less can increase their viewership. We will be using [linear regression](http://r-statistics.co/Linear-Regression.html) to see the trends in the graphs.
 
 ### Tags on less than 1 million views
 
@@ -237,7 +237,7 @@ We can see that some publishing hours perform much better than others. For exmap
 
 ### Best specific hours
 
-In addition to time blocks, we wanted to see which specific hours performed the best. Instead of hour increments, what hour in the day performs the best? 
+In addition to time blocks, we wanted to see which specific hours performed the best. Instead of hour increments, what hour in the day performs the best? We used [kmeans](https://en.wikipedia.org/wiki/K-means_clustering) in order to create the clusters, and then [broom augment] (https://cran.r-project.org/web/packages/broom/vignettes/broom.html) to analyze the data in the clusters. Then we [created a graph with ggplot] (http://r-statistics.co/ggplot2-Tutorial-With-R.html). 
 ```{r}
 time_mean_views <- data %>%
   group_by(hour) %>%
